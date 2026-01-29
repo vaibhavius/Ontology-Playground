@@ -1,15 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { nlQueryResponses } from '../data/quests';
 import { useAppStore } from '../store/appStore';
-import { Search, Sparkles, X } from 'lucide-react';
+import { processQuery, generateQuerySuggestions } from '../data/queryEngine';
+import { Search, Sparkles, X, Lightbulb } from 'lucide-react';
 
 export function QueryPlayground() {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<string | null>(null);
+  const [interpretation, setInterpretation] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { 
+    currentOntology,
     setHighlightedEntities, 
     setHighlightedRelationships, 
     clearHighlights,
@@ -18,44 +20,38 @@ export function QueryPlayground() {
     advanceQuestStep
   } = useAppStore();
 
+  // Generate dynamic suggestions based on current ontology
+  const sampleQueries = useMemo(() => 
+    generateQuerySuggestions(currentOntology),
+    [currentOntology]
+  );
+
   const handleQuery = useCallback(() => {
     if (!input.trim()) return;
 
     setIsProcessing(true);
+    setInterpretation(null);
     
-    // Simulate processing delay
+    // Simulate processing delay for realistic feel
     setTimeout(() => {
-      const normalizedInput = input.toLowerCase().trim();
+      const response = processQuery(input, currentOntology);
       
-      // Find matching response
-      const matchedResponse = nlQueryResponses.find(response => {
-        const queryMatch = response.query.toLowerCase() === normalizedInput;
-        const partialMatch = response.matches.some(match => 
-          normalizedInput.includes(match.toLowerCase())
-        );
-        return queryMatch || partialMatch;
-      });
-
-      if (matchedResponse) {
-        setResult(matchedResponse.result);
-        setHighlightedEntities(matchedResponse.highlightEntities);
-        setHighlightedRelationships(matchedResponse.highlightRelationships);
-        
-        // Check if this advances a quest step
-        if (activeQuest) {
-          const currentStep = activeQuest.steps[currentStepIndex];
-          if (currentStep.targetType === 'query') {
-            advanceQuestStep();
-          }
+      setResult(response.result);
+      setInterpretation(response.interpretation || null);
+      setHighlightedEntities(response.highlightEntities);
+      setHighlightedRelationships(response.highlightRelationships);
+      
+      // Check if this advances a quest step
+      if (activeQuest) {
+        const currentStep = activeQuest.steps[currentStepIndex];
+        if (currentStep.targetType === 'query') {
+          advanceQuestStep();
         }
-      } else {
-        setResult(`I couldn't find a specific answer for "${input}". Try queries like:\n• "Show me all Gold tier customers"\n• "Which products come from Ethiopia?"\n• "What orders did Alex Rivera place?"`);
-        clearHighlights();
       }
       
       setIsProcessing(false);
-    }, 800);
-  }, [input, setHighlightedEntities, setHighlightedRelationships, clearHighlights, activeQuest, currentStepIndex, advanceQuestStep]);
+    }, 600);
+  }, [input, currentOntology, setHighlightedEntities, setHighlightedRelationships, activeQuest, currentStepIndex, advanceQuestStep]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -66,16 +62,23 @@ export function QueryPlayground() {
   const handleClear = () => {
     setInput('');
     setResult(null);
+    setInterpretation(null);
     clearHighlights();
   };
 
-  const sampleQueries = [
-    "Show me all Gold tier customers",
-    "Which products come from Ethiopia?",
-    "What orders did Alex Rivera place?",
-    "List all organic products",
-    "Show supply chain for Cosmic Latte"
-  ];
+  // Convert markdown-like formatting to simple HTML-like display
+  const formatResult = (text: string) => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/_(.+?)_/g, '<em>$1</em>')
+      .split('\n')
+      .map((line, i) => (
+        <span key={i}>
+          <span dangerouslySetInnerHTML={{ __html: line }} />
+          {i < text.split('\n').length - 1 && <br />}
+        </span>
+      ));
+  };
 
   return (
     <div className="query-section">
@@ -88,7 +91,7 @@ export function QueryPlayground() {
         <input
           type="text"
           className="query-input"
-          placeholder="Ask a question about your data..."
+          placeholder={`Ask about ${currentOntology.name}...`}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={handleKeyPress}
@@ -133,7 +136,16 @@ export function QueryPlayground() {
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-sm)',
                   color: 'var(--text-secondary)',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'background 0.2s, border-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-secondary)';
+                  e.currentTarget.style.borderColor = 'var(--ms-blue)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
                 }}
               >
                 {query}
@@ -144,14 +156,39 @@ export function QueryPlayground() {
       )}
 
       <AnimatePresence>
+        {interpretation && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 10px',
+              marginBottom: 8,
+              background: 'rgba(0, 120, 212, 0.1)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 11,
+              color: 'var(--ms-blue)'
+            }}
+          >
+            <Lightbulb size={12} />
+            {interpretation}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {result && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="query-result"
+            style={{ lineHeight: 1.6 }}
           >
-            {result}
+            {formatResult(result)}
           </motion.div>
         )}
       </AnimatePresence>
