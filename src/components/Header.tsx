@@ -1,13 +1,14 @@
 import { useAppStore } from '../store/appStore';
-import { Moon, Sun, Database, Trophy, HelpCircle, FileJson } from 'lucide-react';
+import { Moon, Sun, Database, Trophy, HelpCircle, FileJson, LayoutGrid } from 'lucide-react';
 
 interface HeaderProps {
   onHelpClick: () => void;
   onDataSourcesClick: () => void;
   onImportExportClick: () => void;
+  onGalleryClick: () => void;
 }
 
-export function Header({ onHelpClick, onDataSourcesClick, onImportExportClick }: HeaderProps) {
+export function Header({ onHelpClick, onDataSourcesClick, onImportExportClick, onGalleryClick }: HeaderProps) {
   const { darkMode, toggleDarkMode, totalPoints, earnedBadges } = useAppStore();
 
   return (
@@ -40,6 +41,9 @@ export function Header({ onHelpClick, onDataSourcesClick, onImportExportClick }:
       </div>
 
       <div className="header-actions">
+        <button className="icon-btn" onClick={onGalleryClick} title="Ontology Gallery">
+          <LayoutGrid size={20} />
+        </button>
         <button className="icon-btn" onClick={onImportExportClick} title="Import / Export Ontology">
           <FileJson size={20} />
         </button>

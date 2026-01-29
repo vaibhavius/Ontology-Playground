@@ -10,6 +10,7 @@ import {
   HelpModal,
   DataSourcesModal,
   ImportExportModal,
+  GalleryModal,
   Toast
 } from './components';
 import { useAppStore } from './store/appStore';
@@ -20,6 +21,7 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showDataSources, setShowDataSources] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const [toast, setToast] = useState<{ message: string; icon: string } | null>(null);
   const { darkMode, earnedBadges } = useAppStore();
 
@@ -42,7 +44,8 @@ function App() {
       <Header 
         onHelpClick={() => setShowHelp(true)} 
         onDataSourcesClick={() => setShowDataSources(true)}
-        onImportExportClick={() => setShowImportExport(true)} 
+        onImportExportClick={() => setShowImportExport(true)}
+        onGalleryClick={() => setShowGallery(true)} 
       />
       <QuestPanel />
       <OntologyGraph />
@@ -65,6 +68,10 @@ function App() {
 
       <AnimatePresence>
         {showImportExport && <ImportExportModal onClose={() => setShowImportExport(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showGallery && <GalleryModal onClose={() => setShowGallery(false)} />}
       </AnimatePresence>
 
       <AnimatePresence>
