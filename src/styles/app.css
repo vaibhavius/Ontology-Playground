@@ -1079,6 +1079,77 @@ body {
   border-color: var(--accent);
 }
 
+/* Voice Input Styles */
+.nl-input-wrapper {
+  position: relative;
+}
+
+.nl-input-wrapper .nl-input-textarea {
+  padding-right: 56px;
+}
+
+.voice-btn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.voice-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.voice-btn.recording {
+  background: #E81123;
+  color: white;
+  animation: pulse-recording 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(232, 17, 35, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 0 12px rgba(232, 17, 35, 0);
+  }
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(232, 17, 35, 0.1);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #E81123;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #E81123;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 .example-prompts {
   margin-top: 16px;
 }

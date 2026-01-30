@@ -1,8 +1,51 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Send, Loader2, Check, AlertCircle, Edit3 } from 'lucide-react';
+import { X, Sparkles, Send, Loader2, Check, AlertCircle, Edit3, Mic, MicOff } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import type { Ontology } from '../data/ontology';
+
+// Web Speech API types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
 
 interface NLBuilderModalProps {
   onClose: () => void;
@@ -17,8 +60,131 @@ export function NLBuilderModal({ onClose }: NLBuilderModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editedJson, setEditedJson] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const shouldKeepListeningRef = useRef(false);
   
   const loadOntology = useAppStore((state) => state.loadOntology);
+
+  // Check for speech recognition support
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(!!SpeechRecognitionAPI);
+  }, []);
+
+  const startRecording = () => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      console.error('Speech recognition not supported');
+      return;
+    }
+
+    setVoiceError(null);
+    shouldKeepListeningRef.current = true;
+    setIsRecording(true);
+    
+    const createRecognition = () => {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = false; // Use non-continuous mode and restart manually
+      recognition.interimResults = false; // Only get final results
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setDescription(prev => prev + transcript + ' ');
+        }
+      };
+
+      recognition.onerror = (event) => {
+        const errorEvent = event as Event & { error?: string };
+        console.log('Speech error:', errorEvent.error);
+        
+        // Handle specific errors
+        if (errorEvent.error === 'network') {
+          setVoiceError('Network error - try Chrome or Safari');
+          shouldKeepListeningRef.current = false;
+          setIsRecording(false);
+          return;
+        }
+        
+        if (errorEvent.error === 'service-not-allowed' || errorEvent.error === 'not-allowed') {
+          setVoiceError('Microphone access denied');
+          shouldKeepListeningRef.current = false;
+          setIsRecording(false);
+          return;
+        }
+        
+        // Don't stop on no-speech, just restart
+        if (errorEvent.error === 'no-speech' && shouldKeepListeningRef.current) {
+          setTimeout(() => {
+            if (shouldKeepListeningRef.current) {
+              recognitionRef.current = createRecognition();
+            }
+          }, 100);
+          return;
+        }
+        
+        if (errorEvent.error !== 'aborted') {
+          shouldKeepListeningRef.current = false;
+          setIsRecording(false);
+        }
+      };
+
+      recognition.onend = () => {
+        console.log('Recognition ended, shouldKeep:', shouldKeepListeningRef.current);
+        if (shouldKeepListeningRef.current) {
+          // Restart with a fresh instance - use longer delay for Edge
+          setTimeout(() => {
+            if (shouldKeepListeningRef.current) {
+              recognitionRef.current = createRecognition();
+            }
+          }, 200);
+        } else {
+          setIsRecording(false);
+        }
+      };
+
+      try {
+        recognition.start();
+        console.log('Recognition started');
+      } catch (e) {
+        console.error('Start failed:', e);
+        setVoiceError('Failed to start - try Chrome or Safari');
+        shouldKeepListeningRef.current = false;
+        setIsRecording(false);
+      }
+      
+      return recognition;
+    };
+    
+    recognitionRef.current = createRecognition();
+  };
+
+  const stopRecording = () => {
+    console.log('Stopping speech recognition...');
+    shouldKeepListeningRef.current = false;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // Ignore
+      }
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const toggleRecording = () => {
+    console.log('Toggle recording, current state:', isRecording);
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
   const handleGenerate = async () => {
     if (!description.trim()) return;
@@ -69,6 +235,8 @@ export function NLBuilderModal({ onClose }: NLBuilderModalProps) {
   };
 
   const handleClose = () => {
+    shouldKeepListeningRef.current = false;
+    stopRecording();
     setDescription('');
     setStep('input');
     setGeneratedOntology(null);
@@ -112,17 +280,42 @@ export function NLBuilderModal({ onClose }: NLBuilderModalProps) {
             {step === 'input' && (
               <div className="nl-builder-content">
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                  Describe your business scenario in natural language. AI will extract entities, 
-                  relationships, and properties to create an ontology.
+                  Describe your business scenario in natural language or use voice input. 
+                  AI will extract entities, relationships, and properties to create an ontology.
                 </p>
                 
-                <textarea
-                  className="nl-input-textarea"
-                  placeholder="Describe your business scenario..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={5}
-                />
+                <div className="nl-input-wrapper">
+                  <textarea
+                    className="nl-input-textarea"
+                    placeholder="Describe your business scenario..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={5}
+                  />
+                  {voiceSupported && (
+                    <button
+                      className={`voice-btn ${isRecording ? 'recording' : ''}`}
+                      onClick={toggleRecording}
+                      title={isRecording ? 'Stop recording' : 'Start voice input'}
+                      type="button"
+                    >
+                      {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+                    </button>
+                  )}
+                </div>
+                
+                {isRecording && (
+                  <div className="recording-indicator">
+                    <span className="recording-dot" />
+                    Listening... Speak your ontology description
+                  </div>
+                )}
+                
+                {voiceError && (
+                  <div className="voice-error" style={{ color: 'var(--accent-red)', fontSize: '13px', marginTop: '8px' }}>
+                    ⚠️ {voiceError}
+                  </div>
+                )}
 
                 <div className="example-prompts">
                   <span style={{ color: 'var(--text-tertiary)', fontSize: '12px' }}>Try an example:</span>
