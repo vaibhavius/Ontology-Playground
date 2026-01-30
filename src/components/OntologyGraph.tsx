@@ -196,6 +196,7 @@ export function OntologyGraph() {
           }
         }
       ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       layout: {
         name: 'fcose',
         quality: 'proof',
@@ -215,7 +216,7 @@ export function OntologyGraph() {
         tilingPaddingVertical: 40,
         tilingPaddingHorizontal: 40,
         nodeSeparation: 100
-      },
+      } as any,
       minZoom: 0.3,
       maxZoom: 3
     });
@@ -262,6 +263,7 @@ export function OntologyGraph() {
     mountedRef.current = true;
 
     // Run layout explicitly after initialization for better results
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cy.layout({
       name: 'fcose',
       quality: 'proof',
@@ -274,7 +276,7 @@ export function OntologyGraph() {
       idealEdgeLength: () => 200,
       edgeElasticity: () => 0.45,
       nodeSeparation: 100
-    }).run();
+    } as any).run();
 
     return () => {
       mountedRef.current = false;
@@ -396,6 +398,7 @@ export function OntologyGraph() {
     const cy = getCy();
     if (cy) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cy.layout({
           name: 'fcose',
           quality: 'proof',
@@ -408,7 +411,7 @@ export function OntologyGraph() {
           nodeRepulsion: () => 15000,
           idealEdgeLength: () => 200,
           nodeSeparation: 100
-        }).run();
+        } as any).run();
       } catch { /* ignore */ }
     }
   };
