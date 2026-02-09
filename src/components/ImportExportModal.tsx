@@ -101,8 +101,8 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
       extension = 'csv';
     } else if (exportFormat === 'rdf') {
       content = exportAsRDF();
-      mimeType = 'text/turtle';
-      extension = 'ttl';
+      mimeType = 'application/rdf+xml';
+      extension = 'rdf';
     } else {
       content = exportOntology();
       mimeType = 'application/json';
@@ -197,25 +197,23 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
     return csv;
   };
 
-  // Export as RDF/Turtle format for MS Fabric integration
+  // Export as RDF/XML format for MS Fabric integration
   const exportAsRDF = (): string => {
     const ontologyName = currentOntology.name.toLowerCase().replace(/\s+/g, '-');
     const baseUri = `http://example.org/ontology/${ontologyName}/`;
     
-    let rdf = '';
+    // Helper to escape XML special characters
+    const escapeXml = (str: string): string => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
     
-    // Prefixes
-    rdf += '@prefix owl: <http://www.w3.org/2002/07/owl#> .\n';
-    rdf += '@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n';
-    rdf += '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n';
-    rdf += `@prefix : <${baseUri}> .\n`;
-    rdf += '\n';
-    
-    // Ontology declaration
-    rdf += `<${baseUri}> a owl:Ontology ;\n`;
-    rdf += `    rdfs:label "${currentOntology.name}" ;\n`;
-    rdf += `    rdfs:comment "${currentOntology.description || ''}" .\n`;
-    rdf += '\n';
+    // Helper to capitalize first letter
+    const capitalize = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1);
     
     // Map property types to XSD datatypes
     const xsdTypeMap: Record<string, string> = {
@@ -228,97 +226,120 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
       'enum': 'xsd:string'
     };
     
+    let rdf = '';
+    
+    // XML declaration
+    rdf += '<?xml version="1.0" encoding="UTF-8"?>\n';
+    
+    // RDF root element with namespace declarations
+    rdf += '<rdf:RDF\n';
+    rdf += `    xml:base="${baseUri}"\n`;
+    rdf += '    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n';
+    rdf += '    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"\n';
+    rdf += '    xmlns:owl="http://www.w3.org/2002/07/owl#"\n';
+    rdf += '    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"\n';
+    rdf += `    xmlns:ont="${baseUri}">\n\n`;
+    
+    // Ontology declaration
+    rdf += `    <owl:Ontology rdf:about="${baseUri}">\n`;
+    rdf += `        <rdfs:label>${escapeXml(currentOntology.name)}</rdfs:label>\n`;
+    if (currentOntology.description) {
+      rdf += `        <rdfs:comment>${escapeXml(currentOntology.description)}</rdfs:comment>\n`;
+    }
+    rdf += '    </owl:Ontology>\n\n';
+    
     // Entity Types as OWL Classes
-    rdf += '# =====================\n';
-    rdf += '# Entity Types (Classes)\n';
-    rdf += '# =====================\n\n';
+    rdf += '    <!-- ===================== -->\n';
+    rdf += '    <!-- Entity Types (Classes) -->\n';
+    rdf += '    <!-- ===================== -->\n\n';
     
     for (const entity of currentOntology.entityTypes) {
-      const className = entity.id.charAt(0).toUpperCase() + entity.id.slice(1);
-      rdf += `:${className} a owl:Class ;\n`;
-      rdf += `    rdfs:label "${entity.name}" ;\n`;
-      rdf += `    rdfs:comment "${entity.description || ''}" .\n`;
-      rdf += '\n';
+      const className = capitalize(entity.id);
+      rdf += `    <owl:Class rdf:about="${baseUri}${className}">\n`;
+      rdf += `        <rdfs:label>${escapeXml(entity.name)}</rdfs:label>\n`;
+      if (entity.description) {
+        rdf += `        <rdfs:comment>${escapeXml(entity.description)}</rdfs:comment>\n`;
+      }
+      rdf += '    </owl:Class>\n\n';
     }
     
     // Data Properties (entity properties)
-    rdf += '# ================\n';
-    rdf += '# Data Properties\n';
-    rdf += '# ================\n\n';
+    rdf += '    <!-- ================ -->\n';
+    rdf += '    <!-- Data Properties -->\n';
+    rdf += '    <!-- ================ -->\n\n';
     
     for (const entity of currentOntology.entityTypes) {
-      const className = entity.id.charAt(0).toUpperCase() + entity.id.slice(1);
+      const className = capitalize(entity.id);
       
       for (const prop of entity.properties) {
         const propName = `${entity.id}_${prop.name}`;
         const xsdType = xsdTypeMap[prop.type] || 'xsd:string';
         
-        rdf += `:${propName} a owl:DatatypeProperty ;\n`;
-        rdf += `    rdfs:label "${prop.name}" ;\n`;
-        rdf += `    rdfs:domain :${className} ;\n`;
-        rdf += `    rdfs:range ${xsdType}`;
-        
+        rdf += `    <owl:DatatypeProperty rdf:about="${baseUri}${propName}">\n`;
+        rdf += `        <rdfs:label>${escapeXml(prop.name)}</rdfs:label>\n`;
+        rdf += `        <rdfs:domain rdf:resource="${baseUri}${className}"/>\n`;
+        rdf += `        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#${xsdType.split(':')[1]}"/>\n`;
         if (prop.description) {
-          rdf += ` ;\n    rdfs:comment "${prop.description}"`;
+          rdf += `        <rdfs:comment>${escapeXml(prop.description)}</rdfs:comment>\n`;
         }
         if (prop.isIdentifier) {
-          rdf += ` ;\n    rdfs:comment "Identifier property"`;
+          rdf += '        <rdfs:comment>Identifier property</rdfs:comment>\n';
         }
-        rdf += ' .\n\n';
+        rdf += '    </owl:DatatypeProperty>\n\n';
       }
     }
     
     // Object Properties (relationships)
-    rdf += '# ==================\n';
-    rdf += '# Object Properties\n';
-    rdf += '# ==================\n\n';
+    rdf += '    <!-- ================== -->\n';
+    rdf += '    <!-- Object Properties -->\n';
+    rdf += '    <!-- ================== -->\n\n';
     
     for (const rel of currentOntology.relationships) {
-      const fromClass = rel.from.charAt(0).toUpperCase() + rel.from.slice(1);
-      const toClass = rel.to.charAt(0).toUpperCase() + rel.to.slice(1);
+      const fromClass = capitalize(rel.from);
+      const toClass = capitalize(rel.to);
       
-      rdf += `:${rel.name} a owl:ObjectProperty ;\n`;
-      rdf += `    rdfs:label "${rel.name}" ;\n`;
-      rdf += `    rdfs:domain :${fromClass} ;\n`;
-      rdf += `    rdfs:range :${toClass}`;
-      
+      rdf += `    <owl:ObjectProperty rdf:about="${baseUri}${rel.name}">\n`;
+      rdf += `        <rdfs:label>${escapeXml(rel.name)}</rdfs:label>\n`;
+      rdf += `        <rdfs:domain rdf:resource="${baseUri}${fromClass}"/>\n`;
+      rdf += `        <rdfs:range rdf:resource="${baseUri}${toClass}"/>\n`;
       if (rel.description) {
-        rdf += ` ;\n    rdfs:comment "${rel.description}"`;
+        rdf += `        <rdfs:comment>${escapeXml(rel.description)}</rdfs:comment>\n`;
       }
-      
-      // Add cardinality as annotation
-      rdf += ` ;\n    rdfs:comment "Cardinality: ${rel.cardinality}"`;
-      rdf += ' .\n\n';
+      rdf += `        <rdfs:comment>Cardinality: ${rel.cardinality}</rdfs:comment>\n`;
+      rdf += '    </owl:ObjectProperty>\n\n';
       
       // Add relationship attributes as separate data properties
       if (rel.attributes && rel.attributes.length > 0) {
         for (const attr of rel.attributes) {
           const attrName = `${rel.name}_${attr.name}`;
-          rdf += `:${attrName} a owl:DatatypeProperty ;\n`;
-          rdf += `    rdfs:label "${attr.name}" ;\n`;
-          rdf += `    rdfs:comment "Relationship attribute for ${rel.name}" .\n\n`;
+          rdf += `    <owl:DatatypeProperty rdf:about="${baseUri}${attrName}">\n`;
+          rdf += `        <rdfs:label>${escapeXml(attr.name)}</rdfs:label>\n`;
+          rdf += `        <rdfs:comment>Relationship attribute for ${escapeXml(rel.name)}</rdfs:comment>\n`;
+          rdf += '    </owl:DatatypeProperty>\n\n';
         }
       }
     }
     
-    // Data Bindings as annotations (if available)
+    // Data Bindings as comments (if available)
     if (dataBindings.length > 0) {
-      rdf += '# =============\n';
-      rdf += '# Data Bindings\n';
-      rdf += '# =============\n\n';
+      rdf += '    <!-- ============= -->\n';
+      rdf += '    <!-- Data Bindings -->\n';
+      rdf += '    <!-- ============= -->\n';
       
       for (const binding of dataBindings) {
-        const className = binding.entityTypeId.charAt(0).toUpperCase() + binding.entityTypeId.slice(1);
-        rdf += `# Binding for ${className}:\n`;
-        rdf += `# Source: ${binding.source}\n`;
-        rdf += `# Table: ${binding.table}\n`;
-        rdf += `# Column Mappings:\n`;
+        const className = capitalize(binding.entityTypeId);
+        rdf += `    <!-- Binding for ${className}: -->\n`;
+        rdf += `    <!-- Source: ${binding.source} -->\n`;
+        rdf += `    <!-- Table: ${binding.table} -->\n`;
+        rdf += '    <!-- Column Mappings: -->\n';
         for (const [propName, colName] of Object.entries(binding.columnMappings)) {
-          rdf += `#   ${propName} -> ${colName}\n`;
+          rdf += `    <!--   ${propName} -> ${colName} -->\n`;
         }
         rdf += '\n';
       }
     }
+    
+    rdf += '</rdf:RDF>\n';
     
     return rdf;
   };
@@ -567,7 +588,7 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
                   alignItems: 'center',
                   gap: 4
                 }}
-                title="RDF/Turtle format for MS Fabric"
+                title="RDF/XML format for MS Fabric"
               >
                 <Share2 size={12} />
                 RDF
@@ -579,7 +600,7 @@ export function ImportExportModal({ onClose }: ImportExportModalProps) {
               onClick={handleExport}
               style={{ width: '100%' }}
             >
-              Download .{exportFormat === 'rdf' ? 'ttl' : exportFormat}
+              Download .{exportFormat}
             </button>
           </div>
         </div>
