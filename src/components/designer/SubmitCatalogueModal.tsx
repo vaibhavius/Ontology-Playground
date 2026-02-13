@@ -33,7 +33,7 @@ interface SubmitCatalogueModalProps {
   onClose: () => void;
 }
 
-type Step = 'auth' | 'metadata' | 'submitting' | 'done' | 'error';
+type Step = 'auth' | 'metadata' | 'submitting' | 'done' | 'error' | 'download';
 
 export function SubmitCatalogueModal({ onClose }: SubmitCatalogueModalProps) {
   const ontology = useDesignerStore((s) => s.ontology);
@@ -51,13 +51,15 @@ export function SubmitCatalogueModal({ onClose }: SubmitCatalogueModalProps) {
   const [category, setCategory] = useState('other');
   const [tags, setTags] = useState('');
 
-  // Flow state
-  const [step, setStep] = useState<Step>('auth');
+  // Flow state — skip auth entirely when no client ID is configured
+  const hasOAuth = !!GITHUB_CLIENT_ID;
+  const [step, setStep] = useState<Step>(hasOAuth ? 'auth' : 'download');
   const [error, setError] = useState<string | null>(null);
   const [prUrl, setPrUrl] = useState<string | null>(null);
 
   // Check for existing token on mount
   useEffect(() => {
+    if (!hasOAuth) return;
     const token = getStoredToken();
     if (token) {
       getUser(token)
@@ -70,17 +72,12 @@ export function SubmitCatalogueModal({ onClose }: SubmitCatalogueModalProps) {
           // stay on auth step
         });
     }
-  }, []);
+  }, [hasOAuth]);
 
   // Cleanup abort controller
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const handleStartAuth = useCallback(async () => {
-    if (!GITHUB_CLIENT_ID) {
-      setError('GitHub OAuth is not configured (VITE_GITHUB_CLIENT_ID missing)');
-      setStep('error');
-      return;
-    }
     try {
       const dc = await startDeviceFlow(GITHUB_CLIENT_ID);
       setDeviceCode(dc);
@@ -291,6 +288,22 @@ export function SubmitCatalogueModal({ onClose }: SubmitCatalogueModalProps) {
               <p>Or download the RDF and submit a PR manually:</p>
               <DownloadFallback ontology={ontology} />
             </div>
+          </div>
+        )}
+
+        {/* Step: Download only (no OAuth configured) */}
+        {step === 'download' && (
+          <div className="submit-step">
+            <p className="submit-description">
+              Download your ontology as an RDF file and submit it as a pull request to the
+              {' '}<a href="https://github.com/videlalvaro/ontology-quest" target="_blank" rel="noopener noreferrer">
+                community catalogue <ExternalLink size={12} />
+              </a>.
+            </p>
+            <p className="submit-hint">
+              Place the file under <code>catalogue/community/your-name/</code> and open a PR.
+            </p>
+            <DownloadFallback ontology={ontology} />
           </div>
         )}
       </div>
