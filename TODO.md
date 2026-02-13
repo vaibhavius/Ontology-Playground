@@ -54,30 +54,39 @@ The current RDF export is inline in `ImportExportModal.tsx` and there is no RDF
 ## 2. Fully static site (Azure Static Web Apps + GitHub Pages)
 
 The app currently proxies `/api` to an Azure Functions backend. The site must
-work as a pure static build with zero server-side dependencies.
+work as a pure static build with zero server-side dependencies. Azure SWA is
+the **primary** deployment target; GitHub Pages support is for forks.
 
 ### 2.1 Remove runtime API dependency
-- [ ] The Azure OpenAI feature is already behind `VITE_ENABLE_AI_BUILDER` — confirm
-  the build produces zero `/api` calls when the flag is off
+- [ ] The Azure OpenAI feature is already behind `VITE_ENABLE_AI_BUILDER` —
+  confirm the build produces zero `/api` calls when the flag is off
 - [ ] Audit all `fetch()` calls; ensure none target a dynamic backend when
   running in static mode
-- [ ] Remove or guard the Vite dev proxy (`server.proxy`) so it doesn't confuse
-  static deployments
+- [ ] Guard the Vite dev proxy (`server.proxy`) behind `VITE_ENABLE_AI_BUILDER`
+  so it doesn't confuse static deployments
 
-### 2.2 GitHub Pages deployment
-- [ ] Add a GitHub Actions workflow `.github/workflows/deploy-ghpages.yml`:
-  - Trigger on push to `main`
-  - `npm ci && npm run build`
-  - Deploy `build/` to `gh-pages` branch via `actions/deploy-pages`
-- [ ] Set `base` in `vite.config.ts` dynamically from an env var
-  (`VITE_BASE_PATH`) so it works both at `/` (Azure) and
-  `/<repo-name>/` (GitHub Pages)
-- [ ] Add `build/404.html` copy for SPA fallback on GitHub Pages
-
-### 2.3 Azure Static Web Apps deployment
+### 2.2 Azure Static Web Apps (primary)
+The existing workflow
+`.github/workflows/azure-static-web-apps-green-plant-0bb1d2910.yml` handles
+build + deploy. Adapt it for the new build pipeline:
+- [ ] Add `npm run catalogue:build` step before the SWA deploy action (once
+  §3.2 is done)
 - [ ] Verify `staticwebapp.config.json` is correct for the static-only build
-- [ ] Add a GitHub Actions workflow `.github/workflows/deploy-azure-swa.yml`
-  (or document the SWA CLI workflow)
+  (remove `api_location` if the API feature flag is off)
+- [ ] Ensure the `output_location: "build"` matches Vite's `outDir`
+- [ ] Keep the existing PR preview environment support (staging URLs on PRs)
+
+### 2.3 GitHub Pages (for forks)
+- [ ] Add a **separate** GitHub Actions workflow
+  `.github/workflows/deploy-ghpages.yml`:
+  - Trigger on push to `main`
+  - `npm ci && npm run catalogue:build && npm run build`
+  - Deploy `build/` via `actions/deploy-pages`
+  - Disabled by default (forks enable it by setting the Pages source)
+- [ ] Set `base` in `vite.config.ts` dynamically from an env var
+  (`VITE_BASE_PATH`) so it works at `/` (Azure SWA) and
+  `/<repo-name>/` (GitHub Pages)
+- [ ] Copy `index.html` → `build/404.html` for SPA fallback on GitHub Pages
 - [ ] Document both deployment paths in README
 
 ---
@@ -118,11 +127,19 @@ into a static JSON file.
 - [ ] On build failure (invalid RDF, missing metadata), fail loudly with a
   helpful error message
 
-### 3.3 Community contribution workflow
-- [ ] Write `CONTRIBUTING.md` with instructions:
+### 3.3 Community contribution workflow (Microsoft OSS conventions)
+- [ ] Add `LICENSE` file — **MIT License** (standard for Microsoft OSS projects)
+- [ ] Add `CONTRIBUTING.md` following the
+  [Microsoft Open Source Contributing Guide](https://opensource.microsoft.com/contributing/):
+  - Contributor License Agreement (CLA) requirement — add the
+    [Microsoft CLA bot](https://cla.opensource.microsoft.com/) to the repo
   - Fork → add RDF + `metadata.json` under `catalogue/community/<username>/`
   - Open PR → CI validates the RDF and metadata schema
   - On merge, the next build includes the new ontology
+- [ ] Add `CODE_OF_CONDUCT.md` — use the
+  [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/)
+- [ ] Add `SECURITY.md` — use the
+  [Microsoft Security Policy template](https://github.com/microsoft/repo-templates/blob/main/shared/SECURITY.md)
 - [ ] Add a GitHub Actions CI job that validates PRs touching `catalogue/`:
   - Parse RDF, verify round-trip, check metadata schema
   - Run the full test suite
@@ -239,11 +256,76 @@ These enhance the overall experience for a community learning resource.
 
 ---
 
+## 6. Ontology editor / designer
+
+A visual designer for creating ontologies from scratch or editing existing ones.
+The output is a valid RDF file that can be submitted to the catalogue via a
+one-click PR flow.
+
+### 6.1 Visual entity designer
+- [ ] Create `OntologyDesigner` component — a full-screen editor panel
+- [ ] Entity creation: name, icon picker, color picker, description
+- [ ] Property builder: add/remove/reorder properties with type selectors
+  (string, integer, decimal, date, datetime, boolean, enum)
+- [ ] Mark identifier properties
+- [ ] Drag-and-drop reordering of entities and properties
+
+### 6.2 Relationship builder
+- [ ] Visual relationship creation: select source entity → target entity
+- [ ] Set relationship name, cardinality (1:1, 1:n, n:1, n:n), description
+- [ ] Optional: relationship attributes (e.g., quantity on an order→product
+  edge)
+- [ ] Live preview: as relationships are added, the Cytoscape graph updates
+  in real-time
+
+### 6.3 Live graph preview
+- [ ] Split-pane layout: editor form on the left, live Cytoscape graph on
+  the right
+- [ ] Graph updates in real-time as entities and relationships are
+  added/edited/removed
+- [ ] Click a node or edge in the graph to select it in the editor
+
+### 6.4 RDF output & validation
+- [ ] "Export RDF" button generates valid RDF/OWL via the serializer from §1
+- [ ] "Preview RDF" tab shows the live RDF output as you design
+- [ ] Validate the ontology before export:
+  - All relationships reference existing entity IDs
+  - No duplicate entity/relationship IDs
+  - At least one entity type exists
+  - Each entity has at least one identifier property
+
+### 6.5 One-click PR to catalogue
+- [ ] "Submit to Catalogue" button that:
+  1. Serializes the ontology to RDF
+  2. Prompts for metadata (name, description, tags, author GitHub username)
+  3. Uses the GitHub API to:
+     a. Fork the repo (if not already forked) into the user's account
+     b. Create a branch `catalogue/<username>/<ontology-slug>`
+     c. Commit the `.rdf` file + `metadata.json` to
+        `catalogue/community/<username>/`
+     d. Open a PR against the upstream repo
+  4. Show a link to the created PR
+- [ ] Requires GitHub OAuth — add a "Sign in with GitHub" flow (client-side
+  OAuth via GitHub's device flow or a lightweight OAuth proxy)
+- [ ] For unauthenticated users, fall back to "Download RDF" + manual PR
+  instructions
+- [ ] Pre-fill the PR description with an ontology summary (entity count,
+  relationship count, description)
+
+### 6.6 Edit existing ontologies
+- [ ] "Edit" button in the Gallery for any loaded ontology → opens the
+  designer pre-populated with the ontology data
+- [ ] "Edit" button in the embed widget for catalogue ontologies
+- [ ] When editing a community ontology, the PR targets the original file
+  path (update, not create)
+
+---
+
 ## Priority order (suggested)
 
 | Phase | Items | Rationale |
 |-------|-------|-----------|
 | **Phase 1** | §1 (RDF), §2 (Static), §3.1–3.2 (Catalogue structure + build) | Foundation: proper serialization, static deploy, catalogue pipeline |
-| **Phase 2** | §3.3–3.4 (Community workflow + UI), §5.1 (Deep linking) | Community: accept contributions, browse catalogue, share links |
-| **Phase 3** | §4 (Embed widget), §5.6 (Learning content) | Growth: embeddable widgets drive adoption, docs help newcomers |
+| **Phase 2** | §3.3–3.4 (Community workflow + UI), §5.1 (Deep linking), §6.1–6.4 (Editor/designer) | Community: accept contributions, browse catalogue, share links, design ontologies |
+| **Phase 3** | §6.5–6.6 (One-click PR), §4 (Embed widget), §5.6 (Learning content) | Growth: frictionless contribution, embeds drive adoption, docs help newcomers |
 | **Phase 4** | §5.2–5.5 (Diff, A11y, PWA, Analytics) | Polish: robustness, accessibility, offline, usage insights |
