@@ -55,7 +55,7 @@ const fakeCatalogue: Catalogue = {
       icon: '☕',
       category: 'retail',
       tags: ['coffee', 'supply-chain'],
-      author: 'Ontology Quest',
+      author: 'Ontology Playground',
       source: 'official',
       ontology: makeOntology('Cosmic Coffee', 3, 2),
       bindings: [],

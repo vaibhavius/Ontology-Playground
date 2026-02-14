@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Layers, ArrowRight, Search, Code, User, Pencil } from 'lucide-react';
+import { X, Layers, ArrowRight, Search, Code, User, Pencil, Share2 } from 'lucide-react';
 import { useDesignerStore } from '../store/designerStore';
 import { useAppStore } from '../store/appStore';
 import { serializeToRDF } from '../lib/rdf/serializer';
@@ -26,6 +26,7 @@ export function GalleryModal({ onClose }: GalleryModalProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [rdfViewId, setRdfViewId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(12);
+  const [copiedEmbedId, setCopiedEmbedId] = useState<string | null>(null);
 
   // Load catalogue.json
   useEffect(() => {
@@ -91,6 +92,15 @@ export function GalleryModal({ onClose }: GalleryModalProps) {
 
   const handleViewRdf = (entry: CatalogueEntry) => {
     setRdfViewId(rdfViewId === entry.id ? null : entry.id);
+  };
+
+  const handleCopyEmbed = (entry: CatalogueEntry) => {
+    const siteUrl = window.location.origin + (import.meta.env.BASE_URL || '/');
+    const snippet = `<div class="ontology-embed" data-catalogue-id="${entry.id}" data-catalogue-base-url="${siteUrl}" data-theme="dark" data-height="500px"></div>\n<script src="${siteUrl}embed/ontology-embed.js"><\/script>`;
+    navigator.clipboard.writeText(snippet).then(() => {
+      setCopiedEmbedId(entry.id);
+      setTimeout(() => setCopiedEmbedId(null), 2000);
+    });
   };
 
   return (
@@ -362,6 +372,17 @@ export function GalleryModal({ onClose }: GalleryModalProps) {
                         }}
                       >
                         <Code size={13} />
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '5px 8px', fontSize: 11 }}
+                        title={copiedEmbedId === entry.id ? 'Copied!' : 'Copy embed code'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyEmbed(entry);
+                        }}
+                      >
+                        <Share2 size={13} />
                       </button>
                       <button
                         className="btn btn-secondary"
