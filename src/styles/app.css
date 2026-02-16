@@ -2994,6 +2994,124 @@ body {
   width: fit-content;
 }
 
+/* ── Guided tour ───────────────────────────────────────── */
+
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 3000;
+  pointer-events: auto;
+  transition: clip-path 0.35s ease;
+}
+
+.tour-tooltip {
+  position: fixed;
+  z-index: 3001;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  min-width: 260px;
+}
+
+.tour-tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tour-tooltip-step {
+  font-size: 11px;
+  color: var(--ms-blue);
+  font-weight: 600;
+}
+
+.tour-tooltip-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  border-radius: 4px;
+}
+
+.tour-tooltip-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.tour-tooltip-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.tour-tooltip-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+}
+
+.tour-tooltip-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tour-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+
+.tour-btn-primary {
+  background: var(--ms-blue);
+  color: #fff;
+}
+
+.tour-btn-primary:hover {
+  background: #106ebe;
+}
+
+.tour-btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.tour-btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+.tour-skip {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 0 0;
+}
+
+.tour-skip:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
 .mobile-menu-dropdown {
   position: absolute;
   top: calc(100% + 8px);

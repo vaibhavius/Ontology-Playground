@@ -17,3 +17,4 @@ export { LearnPage } from './LearnPage';
 export { Toast } from './Toast';
 export { CommandPalette } from './CommandPalette';
 export type { CommandItem } from './CommandPalette';
+export { GuidedTour, isTourDismissed } from './GuidedTour';

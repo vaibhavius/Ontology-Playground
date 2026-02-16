@@ -16,7 +16,9 @@ import {
   OntologyDesigner,
   LearnPage,
   Toast,
-  CommandPalette
+  CommandPalette,
+  GuidedTour,
+  isTourDismissed
 } from './components';
 import type { CommandItem } from './components';
 import { useAppStore } from './store/appStore';
@@ -36,7 +38,8 @@ const NLBuilderModal = AI_BUILDER_ENABLED
 function App() {
   const route = useRoute();
 
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(() => isTourDismissed());
+  const [showTour, setShowTour] = useState(() => !isTourDismissed());
   const [showHelp, setShowHelp] = useState(false);
   const [showDataSources, setShowDataSources] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
@@ -206,8 +209,12 @@ function App() {
         </div>
       )}
 
+      {showTour && (
+        <GuidedTour onComplete={() => { setShowTour(false); }} />
+      )}
+
       <AnimatePresence>
-        {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+        {showWelcome && !showTour && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       </AnimatePresence>
 
       <AnimatePresence>
