@@ -473,6 +473,8 @@ body {
 .graph-container {
   position: relative;
   overflow: hidden;
+  /* Fallback background for older browsers */
+  background: var(--bg-primary);
   /* Chess board pattern background */
   background-image: 
     linear-gradient(45deg, var(--chess-square-dark) 25%, transparent 25%),
