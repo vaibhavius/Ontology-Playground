@@ -211,7 +211,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => ({
     };
     set((s) => ({
       ...historyPush(s),
-      ontology: { ...s.ontology, entityTypes: [...s.ontology.entityTypes, entity] },
+      ontology: { ...s.ontology, entityTypes: [entity, ...s.ontology.entityTypes] },
       selectedEntityId: entity.id,
       selectedRelationshipId: null,
     }));
@@ -316,7 +316,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => ({
     };
     set((s) => ({
       ...historyPush(s),
-      ontology: { ...s.ontology, relationships: [...s.ontology.relationships, rel] },
+      ontology: { ...s.ontology, relationships: [rel, ...s.ontology.relationships] },
       selectedRelationshipId: rel.id,
       selectedEntityId: null,
     }));

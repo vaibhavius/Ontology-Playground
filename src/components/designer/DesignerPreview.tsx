@@ -67,13 +67,6 @@ function GraphPreview({ ontology, darkMode, onSelectEntity, onSelectRelationship
     [darkMode],
   );
 
-  // Structural fingerprint — only changes when nodes/edges are added, removed, or reconnected
-  const structureKey = useMemo(() => {
-    const nodeIds = ontology.entityTypes.map((e) => e.id).sort().join(',');
-    const edgeKeys = ontology.relationships.map((r) => `${r.id}:${r.from}>${r.to}`).sort().join(',');
-    return `${nodeIds}|${edgeKeys}`;
-  }, [ontology.entityTypes, ontology.relationships]);
-
   const buildElements = useCallback(() => {
     const nodes = ontology.entityTypes.map((e) => ({
       data: { id: e.id, label: `${e.icon} ${e.name}`, color: e.color },
@@ -84,7 +77,7 @@ function GraphPreview({ ontology, darkMode, onSelectEntity, onSelectRelationship
     return [...nodes, ...edges];
   }, [ontology]);
 
-  // Recreate graph only when the structure (node/edge set or connectivity) changes
+  // Create graph once; update elements incrementally
   useEffect(() => {
     if (!containerRef.current) return;
     const cy = cytoscape({
@@ -151,12 +144,61 @@ function GraphPreview({ ontology, darkMode, onSelectEntity, onSelectRelationship
     cyRef.current = cy;
     return () => { cy.destroy(); cyRef.current = null; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [structureKey, themeColors, onSelectEntity, onSelectRelationship]);
+  }, [themeColors]); // Only recreate on theme change
 
-  // Update cosmetic data (label, color, edge name) in-place without re-layout
+  // Incrementally sync nodes & edges without full relayout
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
+
+    const currentNodeIds = new Set(cy.nodes().map((n) => n.id()));
+    const currentEdgeIds = new Set(cy.edges().map((e) => e.id()));
+    const desiredNodeIds = new Set(ontology.entityTypes.map((e) => e.id));
+    const desiredEdgeIds = new Set(ontology.relationships.map((r) => r.id));
+
+    // Remove deleted elements
+    const toRemove = cy.elements().filter((ele) => {
+      const id = ele.id();
+      return ele.isNode() ? !desiredNodeIds.has(id) : !desiredEdgeIds.has(id);
+    });
+    if (toRemove.length) toRemove.remove();
+
+    // Add new nodes
+    const newNodes: { data: Record<string, string> }[] = [];
+    for (const entity of ontology.entityTypes) {
+      if (!currentNodeIds.has(entity.id)) {
+        newNodes.push({ data: { id: entity.id, label: `${entity.icon} ${entity.name}`, color: entity.color } });
+      }
+    }
+
+    // Add new edges
+    const newEdges: { data: Record<string, string> }[] = [];
+    for (const rel of ontology.relationships) {
+      if (!currentEdgeIds.has(rel.id)) {
+        newEdges.push({ data: { id: rel.id, source: rel.from, target: rel.to, label: rel.name } });
+      }
+    }
+
+    if (newNodes.length || newEdges.length) {
+      cy.add([...newNodes, ...newEdges]);
+      // Only lay out NEW nodes near existing ones, keeping existing positions
+      if (newNodes.length) {
+        const newEles = cy.collection();
+        for (const n of newNodes) {
+          newEles.merge(cy.getElementById(n.data.id));
+        }
+        // Position new nodes near the center of the viewport
+        const { x1, y1, w, h } = cy.extent();
+        const cx = x1 + w / 2;
+        const cy2 = y1 + h / 2;
+        newEles.forEach((ele, i) => {
+          ele.position({ x: cx + (i - newNodes.length / 2) * 80, y: cy2 });
+        });
+      }
+      cy.fit(undefined, 40);
+    }
+
+    // Update cosmetic data on existing elements
     for (const entity of ontology.entityTypes) {
       const node = cy.getElementById(entity.id);
       if (node.length) {

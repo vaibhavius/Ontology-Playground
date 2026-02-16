@@ -48,10 +48,10 @@ export function EntityForm() {
 
   const handleAddEntity = () => {
     addEntity();
-    // Auto-expand the new entity
+    // Auto-expand the new entity (prepended at index 0)
     const latest = useDesignerStore.getState().ontology.entityTypes;
     if (latest.length > 0) {
-      const newId = latest[latest.length - 1].id;
+      const newId = latest[0].id;
       setExpandedEntities((prev) => new Set(prev).add(newId));
     }
   };
