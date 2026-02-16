@@ -411,28 +411,28 @@ social media) often land on mobile — if users can't interact, adoption stalls.
 
 ## 8. Command palette / keyboard shortcuts
 
-- [ ] `Cmd+K` / `Ctrl+K` opens a command palette
-- [ ] Type to navigate: ontologies, designer, learn, import/export
-- [ ] Keyboard shortcuts for common actions (listed in Help modal)
+- [x] `Cmd+K` / `Ctrl+K` opens a command palette
+- [x] Type to navigate: ontologies, designer, learn, import/export
+- [x] Keyboard shortcuts for common actions (listed in Help modal)
 
 ---
 
 ## 9. Starter templates in designer
 
-- [ ] "Start from template" option when opening the designer empty
-- [ ] Domain presets: Retail, Healthcare, Finance, IoT, Education
-- [ ] Each template creates 2–3 entities with relationships pre-wired
-- [ ] Lowers the "blank page" barrier
+- [x] "Start from template" option when opening the designer empty
+- [x] Domain presets: Retail, Healthcare, Finance, IoT, Education
+- [x] Each template creates 2–3 entities with relationships pre-wired
+- [x] Lowers the "blank page" barrier
 
 ---
 
 ## 10. Interactive onboarding tour
 
-- [ ] Replace the static welcome modal with a 5-step guided tour
-- [ ] Spotlight overlay highlights: header → graph → inspector → query bar
+- [x] Replace the static welcome modal with a 5-step guided tour
+- [x] Spotlight overlay highlights: header → graph → inspector → query bar
   → designer
-- [ ] Dismissable, with "Don't show again" option
-- [ ] First-time users get oriented in 30 seconds
+- [x] Dismissable, with "Don't show again" option
+- [x] First-time users get oriented in 30 seconds
 
 ---
 
