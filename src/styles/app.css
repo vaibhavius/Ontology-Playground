@@ -2435,6 +2435,7 @@ body {
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 12px;
+  color: var(--text-primary);
 }
 .learn-index-hero p {
   font-size: 16px;
@@ -2460,6 +2461,7 @@ body {
   border-radius: var(--radius-lg);
   padding: 24px;
   cursor: pointer;
+  color: var(--text-primary);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .learn-card:hover {
@@ -2484,6 +2486,7 @@ body {
   font-size: 17px;
   font-weight: 600;
   margin: 0 0 8px;
+  color: var(--text-primary);
 }
 .learn-card p {
   font-size: 13px;
@@ -2516,17 +2519,20 @@ body {
   font-weight: 700;
   margin: 0 0 24px;
   line-height: 1.3;
+  color: var(--text-primary);
 }
 .learn-article-content h2 {
   font-size: 22px;
   font-weight: 600;
   margin: 32px 0 12px;
   line-height: 1.3;
+  color: var(--text-primary);
 }
 .learn-article-content h3 {
   font-size: 17px;
   font-weight: 600;
   margin: 24px 0 8px;
+  color: var(--text-primary);
 }
 .learn-article-content p {
   font-size: 15px;
@@ -2556,6 +2562,7 @@ body {
   font-size: 15px;
   line-height: 1.7;
   margin-bottom: 4px;
+  color: var(--text-primary);
 }
 
 .learn-article-content table {
@@ -2569,6 +2576,7 @@ body {
   text-align: left;
   padding: 8px 12px;
   border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 .learn-article-content th {
   background: var(--bg-tertiary);
@@ -2586,6 +2594,7 @@ body {
 .learn-article-content code {
   font-family: var(--font-mono);
   font-size: 13px;
+  color: var(--text-primary);
 }
 .learn-article-content p code {
   background: var(--bg-tertiary);
@@ -2629,6 +2638,7 @@ body {
   border-radius: var(--radius-md);
   padding: 12px 16px;
   cursor: pointer;
+  color: var(--text-primary);
   max-width: 48%;
   transition: border-color var(--transition-fast);
 }
