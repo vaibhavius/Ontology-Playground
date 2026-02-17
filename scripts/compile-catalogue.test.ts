@@ -23,8 +23,8 @@ describe('catalogue compilation (end-to-end)', () => {
     expect(result).toContain('official/ecommerce');
 
     const output = readCatalogue();
-    expect(output.count).toBe(6);
-    expect(output.entries).toHaveLength(6);
+    expect(output.count).toBe(11);
+    expect(output.entries).toHaveLength(11);
     expect(output.generatedAt).toBeTruthy();
   });
 
@@ -35,7 +35,7 @@ describe('catalogue compilation (end-to-end)', () => {
       expect(entry.name).toBeTruthy();
       expect(entry.description).toBeTruthy();
       expect(entry.category).toBeTruthy();
-      expect(entry.source).toBe('official');
+      expect(['official', 'community', 'external']).toContain(entry.source);
       expect(entry.ontology).toBeTruthy();
       expect(entry.ontology.entityTypes.length).toBeGreaterThan(0);
       expect(Array.isArray(entry.bindings)).toBe(true);
@@ -63,7 +63,7 @@ describe('catalogue compilation (end-to-end)', () => {
 
 describe('catalogue metadata validation', () => {
   it('all entries reference valid categories', () => {
-    const validCats = ['retail', 'healthcare', 'finance', 'manufacturing', 'education', 'general'];
+    const validCats = ['retail', 'healthcare', 'finance', 'manufacturing', 'education', 'general', 'food', 'web'];
     for (const entry of readCatalogue().entries) {
       expect(validCats).toContain(entry.category);
     }
@@ -71,7 +71,7 @@ describe('catalogue metadata validation', () => {
 
   it('all entries have path-based ids', () => {
     for (const entry of readCatalogue().entries) {
-      expect(entry.id).toMatch(/^(official|community)\//);
+      expect(entry.id).toMatch(/^(official|community|external)\//);
     }
   });
 });

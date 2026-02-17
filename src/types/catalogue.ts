@@ -8,7 +8,7 @@ export interface CatalogueEntry {
   category: string;
   tags: string[];
   author: string;
-  source: 'official' | 'community';
+  source: 'official' | 'community' | 'external';
   ontology: Ontology;
   bindings: DataBinding[];
 }
@@ -25,6 +25,8 @@ export const CATEGORY_LABELS: Record<string, string> = {
   finance: 'Finance',
   manufacturing: 'Manufacturing',
   education: 'Education',
+  food: 'Food & Beverage',
+  web: 'Web & Schema',
   general: 'General',
 };
 
@@ -34,5 +36,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   finance: '#107C10',
   manufacturing: '#FFB900',
   education: '#8764B8',
+  food: '#E74C3C',
+  web: '#00A9E0',
   general: '#6B7280',
 };

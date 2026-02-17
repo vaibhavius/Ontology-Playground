@@ -13,7 +13,7 @@ interface GalleryModalProps {
   onClose: () => void;
 }
 
-type SourceFilter = 'all' | 'official' | 'community';
+type SourceFilter = 'all' | 'official' | 'community' | 'external';
 
 export function GalleryModal({ onClose }: GalleryModalProps) {
   const { currentOntology, loadOntology } = useAppStore();
@@ -167,6 +167,7 @@ export function GalleryModal({ onClose }: GalleryModalProps) {
           >
             <option value="all">All sources</option>
             <option value="official">Official</option>
+            <option value="external">External</option>
             <option value="community">Community</option>
           </select>
           <select
@@ -284,6 +285,20 @@ export function GalleryModal({ onClose }: GalleryModalProps) {
                               }}
                             >
                               Community
+                            </span>
+                          )}
+                          {entry.source === 'external' && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                padding: '1px 6px',
+                                background: 'var(--ms-cyan)',
+                                borderRadius: 'var(--radius-sm)',
+                                color: '#fff',
+                                fontWeight: 500,
+                              }}
+                            >
+                              External
                             </span>
                           )}
                         </div>

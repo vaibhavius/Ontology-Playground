@@ -39,7 +39,7 @@ interface CatalogueMetadata {
 // ------------------------------------------------------------------
 
 const REQUIRED_METADATA_FIELDS = ['name', 'description', 'category'] as const;
-const VALID_CATEGORIES = ['retail', 'healthcare', 'finance', 'manufacturing', 'education', 'general'];
+const VALID_CATEGORIES = ['retail', 'healthcare', 'finance', 'manufacturing', 'education', 'food', 'web', 'general'];
 
 function validateMetadata(meta: unknown, filePath: string): CatalogueMetadata {
   if (typeof meta !== 'object' || meta === null) {
@@ -95,9 +95,10 @@ function compile(): Catalogue {
   const seenIds = new Set<string>();
   let errors = 0;
 
-  for (const tier of ['official', 'community'] as const) {
+  for (const tier of ['official', 'community', 'external'] as const) {
     const tierDir = join(CATALOGUE_DIR, tier);
-    // For community, ontologies are nested one level deeper: community/<user>/<slug>/
+    // For community and external, ontologies are nested one level deeper:
+    // community/<user>/<slug>/  or  external/<source-name>/<slug>/
     const ontologyDirs: { dir: string; source: typeof tier }[] = [];
 
     if (tier === 'official') {
@@ -105,7 +106,7 @@ function compile(): Catalogue {
         ontologyDirs.push({ dir, source: tier });
       }
     } else {
-      // community/<username>/<ontology-slug>/
+      // community/<username>/<ontology-slug>/  or  external/<source>/<ontology-slug>/
       for (const userDir of discoverOntologyDirs(tierDir)) {
         for (const dir of discoverOntologyDirs(userDir)) {
           ontologyDirs.push({ dir, source: tier });
