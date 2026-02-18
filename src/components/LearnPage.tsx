@@ -432,26 +432,20 @@ function PresentationMode({
   }, [slideIndex]);
 
   const goNext = useCallback(() => {
-    setSlideIndex((i) => {
-      if (i < total - 1) return i + 1;
-      // On last slide, advance to next article with ?slide=1 so presentation auto-opens
-      if (nextArticle) {
-        window.location.hash = `#/learn/${courseSlug}/${nextArticle.slug}?slide=1`;
-      }
-      return i;
-    });
-  }, [total, nextArticle, courseSlug]);
+    if (slideIndex < total - 1) {
+      setSlideIndex(slideIndex + 1);
+    } else if (nextArticle) {
+      window.location.hash = `#/learn/${courseSlug}/${nextArticle.slug}?slide=1`;
+    }
+  }, [slideIndex, total, nextArticle, courseSlug]);
   const goPrev = useCallback(() => {
-    setSlideIndex((i) => {
-      if (i > 0) return i - 1;
-      // On first slide, go to previous article's last slide
-      if (prevArticle) {
-        const prevSlides = splitIntoSlides(prevArticle.html, prevArticle.title);
-        window.location.hash = `#/learn/${courseSlug}/${prevArticle.slug}?slide=${prevSlides.length}`;
-      }
-      return i;
-    });
-  }, [prevArticle, courseSlug]);
+    if (slideIndex > 0) {
+      setSlideIndex(slideIndex - 1);
+    } else if (prevArticle) {
+      const prevSlideCount = splitIntoSlides(prevArticle.html, prevArticle.title).length;
+      window.location.hash = `#/learn/${courseSlug}/${prevArticle.slug}?slide=${prevSlideCount}`;
+    }
+  }, [slideIndex, prevArticle, courseSlug]);
 
   // Keyboard navigation
   useEffect(() => {
