@@ -90,7 +90,7 @@ export function LearnPage({ route }: LearnPageProps) {
       </header>
 
       {article && course ? (
-        <ArticleView article={article} course={course} darkMode={darkMode} />
+        <ArticleView key={article.slug} article={article} course={course} darkMode={darkMode} />
       ) : course ? (
         <CourseDetail course={course} />
       ) : (
