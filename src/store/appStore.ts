@@ -154,7 +154,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   toggleDataBindings: () => set((state) => ({ showDataBindings: !state.showDataBindings })),
   toggleDarkMode: () => set((state) => {
     const next = !state.darkMode;
-    localStorage.setItem('darkMode', String(next));
+    try {
+      localStorage.setItem('darkMode', String(next));
+    } catch {
+      // Ignore persistence errors; still update in-memory state
+    }
     return { darkMode: next };
   }),
   
